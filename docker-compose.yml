@@ -1,15 +1,20 @@
 services:
   nessie-db:
     image: postgres:17
-    container_name: postgres
+    container_name: nessie-db # Explicitly naming the container
     ports:
-      - "5433:5432" # Use a different host port to avoid conflict if another postgres is running
+      - "5433:5432"
     environment:
       - POSTGRES_USER=nessie
       - POSTGRES_PASSWORD=nessie
       - POSTGRES_DB=nessie_catalog
     volumes:
       - nessie_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nessie -d nessie_catalog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nessie:
     image: projectnessie/nessie:latest
@@ -22,7 +27,8 @@ services:
       - QUARKUS_DATASOURCE_USERNAME=nessie
       - QUARKUS_DATASOURCE_PASSWORD=nessie
     depends_on:
-      - nessie-db
+      nessie-db:
+        condition: service_healthy
 
   minio:
     image: minio/minio:latest
@@ -50,6 +56,109 @@ services:
       - nessie
       - minio
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "xpack.security.enabled=false"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  execute-migrate-all:
+    image: openmetadata/server:1.8.9
+    command: "./bootstrap/openmetadata-ops.sh migrate"
+    environment:
+      # Database configuration using the correct variables
+      DB_DRIVER_CLASS: 'org.postgresql.Driver'
+      DB_SCHEME: 'postgresql'
+      DB_HOST: 'nessie-db'
+      DB_PORT: '5432'
+      DB_USER: 'nessie'
+      DB_USER_PASSWORD: 'nessie'
+      OM_DATABASE: 'openmetadata_db' # This will be the new DB created inside the postgres container
+      # Search Configuration
+      SEARCH_TYPE: 'elasticsearch'
+      ELASTICSEARCH_HOST: 'elasticsearch'
+      ELASTICSEARCH_PORT: '9200'
+      ELASTICSEARCH_SCHEME: 'http'
+    depends_on:
+      nessie-db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  openmetadata-server:
+    image: openmetadata/server:1.8.9
+    container_name: openmetadata-server
+    environment:
+      # Database configuration using the correct variables
+      DB_DRIVER_CLASS: 'org.postgresql.Driver'
+      DB_SCHEME: 'postgresql'
+      DB_HOST: 'nessie-db'
+      DB_PORT: '5432'
+      DB_USER: 'nessie'
+      DB_USER_PASSWORD: 'nessie'
+      OM_DATABASE: 'openmetadata_db'
+      # Search Configuration
+      SEARCH_TYPE: 'elasticsearch'
+      ELASTICSEARCH_HOST: 'elasticsearch'
+      ELASTICSEARCH_PORT: '9200'
+      ELASTICSEARCH_SCHEME: 'http'
+      # Authorizer Configuration
+      AUTHORIZER_ADMIN_PRINCIPALS: '[admin]'
+      AUTHENTICATION_PROVIDER: 'basic'
+    ports:
+      - "8585:8585"
+      - "8586:8586"
+    restart: 
+      always
+    depends_on:
+      execute-migrate-all:
+        condition: service_completed_successfully
+      nessie-db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider",  "http://localhost:8586/healthcheck" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  openmetadata-ingestion:
+    image: openmetadata/ingestion:1.8.9
+    container_name: openmetadata-ingestion
+    environment:
+      OPENMETADATA_SERVER_URL: http://openmetadata-server:8585/api
+      DB_DRIVER_CLASS: 'org.postgresql.Driver'
+      DB_SCHEME: 'postgresql'
+      DB_HOST: 'nessie-db'
+      DB_PORT: '5432'
+      DB_USER: 'nessie'
+      DB_USER_PASSWORD: 'nessie'
+      OM_DATABASE: 'openmetadata_db'
+    volumes:
+      - ./base_dbt:/opt/dbt
+    depends_on:
+      openmetadata-server:
+        condition: service_started
+      nessie-db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    restart: 
+      always
+
 volumes:
   nessie_db_data:
   minio_data:
+  elasticsearch_data:
