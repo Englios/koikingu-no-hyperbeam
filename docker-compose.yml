@@ -30,6 +30,7 @@ services:
       nessie-db:
         condition: service_healthy
 
+
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -116,6 +117,8 @@ services:
       # Authorizer Configuration
       AUTHORIZER_ADMIN_PRINCIPALS: '[admin]'
       AUTHENTICATION_PROVIDER: 'basic'
+      PIPELINE_SERVICE_CLIENT_ENDPOINT: http://openmetadata-ingestion:8080
+      SERVER_HOST_API_URL: http://openmetadata-server:8585/api
     ports:
       - "8585:8585"
       - "8586:8586"
@@ -138,16 +141,29 @@ services:
     image: openmetadata/ingestion:1.8.9
     container_name: openmetadata-ingestion
     environment:
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
       OPENMETADATA_SERVER_URL: http://openmetadata-server:8585/api
-      DB_DRIVER_CLASS: 'org.postgresql.Driver'
-      DB_SCHEME: 'postgresql'
-      DB_HOST: 'nessie-db'
-      DB_PORT: '5432'
-      DB_USER: 'nessie'
-      DB_USER_PASSWORD: 'nessie'
-      OM_DATABASE: 'openmetadata_db'
+      DB_HOST: ${AIRFLOW_DB_HOST:-nessie-db}
+      DB_PORT: ${AIRFLOW_DB_PORT:-5432}
+      AIRFLOW_DB: ${AIRFLOW_DB:-airflow_db}
+      DB_USER: ${AIRFLOW_DB_USER:-nessie}
+      DB_SCHEME: ${AIRFLOW_DB_SCHEME:-postgresql+psycopg2}
+      DB_PASSWORD: ${AIRFLOW_DB_PASSWORD:-nessie}
+      # extra connection-string properties for the database
+      # EXAMPLE 
+      # require SSL (only for Postgres)
+      # properties: "?sslmode=require"
+      DB_PROPERTIES: ${AIRFLOW_DB_PROPERTIES:-}
+    entrypoint: /bin/bash
+    command:
+      - "/opt/airflow/ingestion_dependency.sh"
     volumes:
       - ./base_dbt:/opt/dbt
+    expose:
+      - 8080
+    ports:
+      - "8081:8080"
     depends_on:
       openmetadata-server:
         condition: service_started
