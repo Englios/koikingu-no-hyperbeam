@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: jaffle_shop
+    description: A clone of a Postgres application database.
+    database: iceberg # this should match the database in your profiles.yml
+    schema: dbt_models # this should match the schema in your profiles.yml
+    tables:
+      - name: customers
+        description: Raw customers data.
+        columns:
+          - name: id
+            description: Primary key for customers.
+            tests:
+              - unique
+              - not_null
+          - name: first_name
+            description: Customers First Name
+            tests:
+              - not_null
+          - name: last_name
+            description: Customers Last Name
+            tests:
+              - not_null
+      - name: orders
+        description: Raw orders data.
+        columns:
+          - name: id
+            description: Primary key for orders.
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+          - name : order_date
+          - name : status
+      - name : payments
+        columns:
+          - name: id
+          - name: order_id
+          - name: payment_method
+          - name: amount
+
