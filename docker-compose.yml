@@ -10,6 +10,7 @@ services:
       - POSTGRES_DB=nessie_catalog
     volumes:
       - nessie_db_data:/var/lib/postgresql/data
+      - ./nessie-db-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nessie -d nessie_catalog"]
       interval: 10s
@@ -49,10 +50,12 @@ services:
     container_name: trino-coordinator
     ports:
       - "8080:8080"
+      - "8443:8443"
     volumes:
       - ./trino/config.properties:/etc/trino/config.properties
       - ./trino/jvm.config:/etc/trino/jvm.config
       - ./trino/iceberg.properties:/etc/trino/catalog/iceberg.properties
+      - ./trino/certs:/etc/trino/certs
     depends_on:
       - nessie
       - minio
