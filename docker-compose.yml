@@ -126,7 +126,7 @@ services:
       - "8585:8585"
       - "8586:8586"
     restart: 
-      always
+    restart: always
     depends_on:
       execute-migrate-all:
         condition: service_completed_successfully
