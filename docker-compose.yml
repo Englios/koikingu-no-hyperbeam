@@ -125,7 +125,6 @@ services:
     ports:
       - "8585:8585"
       - "8586:8586"
-    restart: 
     restart: always
     depends_on:
       execute-migrate-all:
@@ -174,8 +173,6 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_started
-    restart: 
-      always
     restart: always
 volumes:
   nessie_db_data:
