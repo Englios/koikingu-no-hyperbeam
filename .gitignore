@@ -15,6 +15,7 @@ wheels/
 
 **/logs
 **/ignore*
+/trino/certs
 
 # Ai stuff
 GEMINI.md
