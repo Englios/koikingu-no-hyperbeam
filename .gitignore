@@ -5,12 +5,17 @@ build/
 dist/
 wheels/
 *.egg-info
+*.lock
 
 # Virtual environments
 .venv
 
 # Secrets
 .env
+
+**/logs
+**/ignore*
+/trino/certs
 
 # Ai stuff
 GEMINI.md

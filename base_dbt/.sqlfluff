@@ -1,0 +1,17 @@
+[sqlfluff]
+# The dialect of SQL to lint
+dialect = trino
+# The templater to use (dbt is for dbt projects)
+templater = dbt
+# A comma-separated list of rules to ignore
+# For example: exclude_rules = L003, L009
+
+[sqlfluff:templater:dbt]
+# The directory of your dbt project
+project_dir = .
+# The directory of your dbt profiles
+profiles_dir = .
+# The profile to use
+profile = base_dbt
+# The target to use
+target = dev
