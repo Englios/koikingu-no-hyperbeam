@@ -48,13 +48,20 @@ services:
   trino-coordinator:
     image: trinodb/trino:476
     container_name: trino-coordinator
+    env_file:
+      - .env
+    environment:
+      - WWI_CONNECTION_URL=${WWI_CONNECTION_URL}
+      - WWI_DW_CONNECTION_URL=${WWI_DW_CONNECTION_URL}
+      - SQL_SERVER_USER=${SQL_SERVER_USER}
+      - SQL_SERVER_PASSWORD=${SQL_SERVER_PASSWORD}
     ports:
       - "8080:8080"
       - "8443:8443"
     volumes:
       - ./trino/config.properties:/etc/trino/config.properties
       - ./trino/jvm.config:/etc/trino/jvm.config
-      - ./trino/iceberg.properties:/etc/trino/catalog/iceberg.properties
+      - ./trino/connectors/:/etc/trino/catalog/
       - ./trino/certs:/etc/trino/certs
     depends_on:
       - nessie
