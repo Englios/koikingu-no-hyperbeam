@@ -176,7 +176,7 @@ services:
         condition: service_started
     restart: 
       always
-
+    restart: always
 volumes:
   nessie_db_data:
   minio_data:
