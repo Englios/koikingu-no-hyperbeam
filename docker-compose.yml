@@ -46,7 +46,7 @@ services:
       - minio_data:/data
 
   trino-coordinator:
-    image: trinodb/trino:435
+    image: trinodb/trino:476
     container_name: trino-coordinator
     ports:
       - "8080:8080"
