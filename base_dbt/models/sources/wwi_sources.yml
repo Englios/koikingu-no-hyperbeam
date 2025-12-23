@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: wwi
+    description: "The Wide World Importers database, hosted on Azure SQL."
+    # This 'database' points to the catalog name in Trino
+    database: wwi
+    # This is the schema within the WWI database
+    schema: Sales
+    tables:
+      - name: Customers
+        identifier: Customers
+        description: "Raw customer data from WWI."
+      - name: Orders
+        identifier: Orders
+        description: "Raw order data from WWI."
+      - name: OrderLines
+        identifier: OrderLines
+        description: "Raw order line item data from WWI."
